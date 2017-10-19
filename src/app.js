@@ -9,7 +9,7 @@ if (!fs.existsSync("token.json")) {
     }));
 }
 
-var token = JSON.parse(fs.readFileSync("token.json", "utf8"));
+const token = JSON.parse(fs.readFileSync("token.json", "utf8"));
 
 const bot = new Eris.CommandClient(token.token, {}, {
     description: "A music bot made with Eris",
@@ -17,8 +17,7 @@ const bot = new Eris.CommandClient(token.token, {}, {
     prefix: "m<"
 });
 
-var queue = [];
-var playlists = new Map();
+let queue = [];
 
 bot.on('ready', function () {
     console.log("Ready!");
@@ -46,6 +45,10 @@ bot.registerCommand("play", (msg, args) => {
 });
 
 bot.registerCommand("skip", (msg) => {
+    if (msg.member.voiceState.channelID === null) {
+        msg.channel.createMessage("Please join the voice channel first.").catch(logerror.logerror);
+        return;
+    }
     bot.joinVoiceChannel(msg.member.voiceState.channelID).then((connection) => {
         msg.channel.createMessage("Skipping...").catch(logerror.logerror).then(() => {
             connection.stopPlaying();
@@ -59,6 +62,10 @@ bot.registerCommand("skip", (msg) => {
 });
 
 bot.registerCommand("volume", (msg, args) => {
+    if (msg.member.voiceState.channelID === null) {
+        msg.channel.createMessage("Please join the voice channel first.").catch(logerror.logerror);
+        return;
+    }
     bot.joinVoiceChannel(msg.member.voiceState.channelID).then((connection) => {
         if (args[0] * .01 > 1.0) {
             msg.channel.createMessage("Can't set the volume that high.").catch(logerror.logerror);
@@ -69,6 +76,10 @@ bot.registerCommand("volume", (msg, args) => {
 });
 
 bot.registerCommand("pause", msg => {
+    if (msg.member.voiceState.channelID === null) {
+        msg.channel.createMessage("Please join the voice channel first.").catch(logerror.logerror);
+        return;
+    }
     bot.joinVoiceChannel(msg.member.voiceState.channelID).then((connection) => {
         if (!connection.paused) {
             msg.channel.createMessage("Pausing playing.").catch(logerror.logerror);
@@ -78,42 +89,6 @@ bot.registerCommand("pause", msg => {
             connection.resume();
         }
     }, logerror.logerror);
-});
-
-bot.registerCommand("genplaylist", (msg, args) => {
-    let videos = 10;
-    if (args[1] !== undefined) {
-        videos = args[1];
-        console.log("amount not undefined")
-    }
-    let playlist = [];
-    console.log("generating playlist for " + args[0]);
-    console.log("amount: " + videos);
-    ytdl.getInfo(args[0]).then((t) => {
-        let vids = t.related_videos.slice(1, videos + 1);
-        for (let i in vids) {
-            console.log();
-        }
-        playlists.set(args[0], playlist);
-        msg.channel.createMessage("Generated a playlist for " + args[0] + ". Use m<playlist [video url] to play the list.")
-            .catch(logerror.logerror);
-    }).catch(p1 => logerror.logerror());
-});
-
-bot.registerCommand("playlist", (msg, args) => {
-    let playlist = playlists.get(args[0]);
-    if (playlist === undefined) {
-        msg.channel.createMessage("I don't have a playlist for that.").catch(logerror.logerror);
-    } else {
-        let new_queue = [];
-        for(let i = 0; i >= playlist.length; i++) {
-            new_queue = new_queue.push(new Song(playlist[i]));
-        }
-        bot.joinVoiceChannel(msg.member.voiceState.channelID).then((connection) => {
-            playStream(connection, ytdl(args[0], {filter: "audioonly"}), msg.member.voiceState.channelID);
-            queue = new_queue;
-        });
-    }
 });
 
 bot.registerCommand("queue", msg => {
@@ -129,6 +104,14 @@ bot.registerCommand("queue", msg => {
 });
 
 function playStream(connection, stream, url, channel_id) {
+    if (stream === null) {
+        bot.createMessage(channel_id, "`Stream undefined`").catch(logerror.logerror);
+        if (queue.length >= 1) {
+            playStream(connection, queue[0].stream, queue[0].url, channel_id);
+            queue.shift();
+        }
+        return;
+    }
     console.log("url " + url);
     connection.play(stream, {
         inlineVolume: true
