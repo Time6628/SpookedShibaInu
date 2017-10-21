@@ -25,14 +25,18 @@ bot.on('ready', function () {
 
 bot.registerCommand("play", (msg, args) => {
     if (msg.member.voiceState.channelID === null) {
-        msg.channel.createMessage("Please enter a voice channel.").catch(logerror.logerror)
+        msg.channel.createMessage("Please enter a voice channel.").catch(logerror.logerror);
         return;
     }
     bot.joinVoiceChannel(msg.member.voiceState.channelID).then((connection) => {
         if (connection.playing) {
-            bot.createMessage(msg.channel.id, "Added " + args[0] + " to the queue.").then(() => {
-                queue.push(new Song(args[0]));
-            }).catch(logerror.logerror);
+            try {
+                bot.createMessage(msg.channel.id, "Added " + args[0] + " to the queue.").then(() => {
+                    queue.push(new Song(args[0]));
+                }).catch(logerror.logerror);
+            } catch (error) {
+                bot.createMessage(msg.channel.id, "Added " + args[0] + " to the queue.").catch(logerror.logerror)
+            }
         } else {
             console.log("Playing " + args[0]);
             const stream = ytdl(args[0], {filter: "audioonly"});
@@ -104,24 +108,37 @@ bot.registerCommand("queue", msg => {
 });
 
 function playStream(connection, stream, url, channel_id) {
-    if (stream === null) {
-        bot.createMessage(channel_id, "`Stream undefined`").catch(logerror.logerror);
+    if (stream === null || stream === undefined) {
+        bot.createMessage(channel_id, "Unable to play video.").catch(logerror.logerror);
         if (queue.length >= 1) {
             playStream(connection, queue[0].stream, queue[0].url, channel_id);
             queue.shift();
         }
         return;
     }
+
     console.log("url " + url);
+
+    connection.on("error", (err) => {
+        bot.getChannel(channel_id).createMessage(err.message).catch(logerror.logerror)
+    });
+
+    connection.on("warn", (err) => {
+        logerror.logerror(err);
+    });
+
     connection.play(stream, {
         inlineVolume: true
     });
+
     console.log("resetting volume...");
     connection.setVolume(0.1);
     bot.createMessage(channel_id, "Now playing: " + url).catch(logerror.logerror);
+
     connection.once("end", () => {
         console.log("finished playing " + url);
         if (queue.length >= 1) {
+            stream.destroy();
             playStream(connection, queue[0].stream, queue[0].url, channel_id);
             queue.shift();
         }
@@ -130,7 +147,7 @@ function playStream(connection, stream, url, channel_id) {
 
 function Song(url) {
     this.url = url;
-    this.stream = ytdl(url, {filter: "audioonly"});
+    this.stream = ytdl(url, {filter: "audioonly"}).on("error", logerror.logerror);
 }
 
 bot.connect();
