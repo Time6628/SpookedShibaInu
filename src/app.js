@@ -58,8 +58,9 @@ bot.registerCommand("skip", (msg) => {
             connection.stopPlaying();
             if (queue === undefined) {
                 msg.channel.createMessage("No more songs left in queue.").catch(logerror.logerror);
-                return
+                return;
             }
+            connection.stream.destroy();
             playStream(connection, queue[0].stream, queue[0].url, msg.member.voiceState.channelID);
         });
     }, logerror.logerror);
@@ -119,13 +120,9 @@ function playStream(connection, stream, url, channel_id) {
 
     console.log("url " + url);
 
-    connection.on("error", (err) => {
-        bot.getChannel(channel_id).createMessage(err.message).catch(logerror.logerror)
-    });
+    connection.on("error", logerror.logerror);
 
-    connection.on("warn", (err) => {
-        logerror.logerror(err);
-    });
+    connection.on("warn", logerror.logerror);
 
     connection.play(stream, {
         inlineVolume: true
