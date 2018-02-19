@@ -6,15 +6,8 @@
     "start": "node src/app.js"
   },
   "dependencies": {
-    "body-parser": "~1.17.1",
-    "cookie-parser": "~1.4.3",
-    "debug": "~2.6.3",
-    "express": "~4.15.2",
-    "morgan": "~1.8.1",
-    "serve-favicon": "~2.4.2",
-    "eris": "^0.7.2",
+    "eris": "^0.8.4",
     "xurl": "^0.0.1",
-    "ytdl-core": "^0.17.1",
-    "queue": "^4.4.1"
+    "ytdl-core": "^0.20.1"
   }
 }
