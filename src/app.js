@@ -153,6 +153,8 @@ function Player(connection, url, channel, volume) {
             this.updatePlayer(queue[0]);
             queue.shift();
             this.playStream();
+        } else {
+            bot.leaveVoiceChannel(channel.channel_id);
         }
     };
 
