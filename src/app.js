@@ -154,7 +154,7 @@ function Player(connection, url, channel, volume) {
             queue.shift();
             this.playStream();
         } else {
-            bot.leaveVoiceChannel(channel.channel_id);
+            bot.leaveVoiceChannel(connection.channelID);
         }
     };
 
